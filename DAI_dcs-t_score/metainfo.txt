@@ -1,0 +1,14 @@
+Name of Quantlet: 'DAI_dcst_score'
+
+Published in: '代 DAI Digital Art Index'
+
+Description: 'illustration of score and degree of freedom.'
+
+Submitted:  '24 Oct 2022'
+
+Keywords: 
+- 't-distribution'
+- 'dcs-t'
+
+Author: 
+- 'Min-Bin Lin'

@@ -1,0 +1,14 @@
+Name of Quantlet: 'DAI_quarterly_art_sales'
+
+Published in: '代 DAI Digital Art Index'
+
+Description: 'Quarterly sales in USD millions of post war, contemporary, ultra contemporary, NFT art markets, plotted in order. The dotted line is the cumulative sales on NFT.'
+
+Submitted:  '24 Oct 2022'
+
+Keywords: 
+- 'Art market'
+- 'NFT'
+
+Author: 
+- 'Min-Bin Lin'

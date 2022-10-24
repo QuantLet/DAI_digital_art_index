@@ -1,0 +1,14 @@
+Name of Quantlet: 'DAI_nft_data_analysis'
+
+Published in: '代 DAI Digital Art Index'
+
+Description: 'Preliminary analysis for NFT data.'
+
+Submitted:  '24 Oct 2022'
+
+Keywords: 
+- 'Art market'
+- 'NFT'
+
+Author: 
+- 'Min-Bin Lin'

@@ -1,0 +1,15 @@
+Name of Quantlet: 'DAI_the_indices'
+
+Published in: '代 DAI Digital Art Index'
+
+Description: 'Kalman filter and DCS-t filter.'
+
+Submitted:  '24 Oct 2022'
+
+Keywords: 
+- 'Kalman filter'
+- 'DCS-t'
+- 'Art market'
+
+Author: 
+- 'Min-Bin Lin'

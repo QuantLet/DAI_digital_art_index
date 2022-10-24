@@ -1,0 +1,14 @@
+Name of Quantlet: 'DAI_digital_art_index'
+
+Published in: '代 DAI Digital Art Index'
+
+Description: 'All source codes for DAI. Due to the limited storage on Github, the data are not posed here.'
+
+Submitted:  '24 Oct 2022'
+
+Keywords: 
+- 'Art market'
+- 'NFT'
+
+Author: 
+- 'Min-Bin Lin', 'Bingling Wang'

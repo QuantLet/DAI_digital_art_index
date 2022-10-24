@@ -1,0 +1,15 @@
+Name of Quantlet: 'DAI_autocorrelation_causality'
+
+Published in: '代 DAI Digital Art Index'
+
+Description: 'Test autocorrelation and causality.'
+
+Submitted:  '24 Oct 2022'
+
+Keywords: 
+- 'autocorrelation test'
+- 'granger causality'
+- 'convergent cross mapping'
+
+Author: 
+- 'Min-Bin Lin'
