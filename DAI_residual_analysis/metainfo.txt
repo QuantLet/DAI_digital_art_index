@@ -12,5 +12,4 @@ Keywords:
 - 'QQ plot'
 
 Author: 
-- 'Min-Bin Lin'
-- 'Bingling Wang'
+- 'Min-Bin Lin, Bingling Wang'
