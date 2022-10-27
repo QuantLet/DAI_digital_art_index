@@ -11,4 +11,4 @@ Keywords:
 - 'Huberization'
 
 Author: 
-- 'Bingling Wang', 'Min-Bin Lin'
+- 'Bingling Wang, Min-Bin Lin'
