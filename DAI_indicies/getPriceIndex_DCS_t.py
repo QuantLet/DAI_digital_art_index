@@ -102,7 +102,7 @@ class DCSt_filtering(object):
             ePreviousT = ePrevious.T
             nSp_pre = self.n_t[t-2]
 
-            wPrevious = 1 + (1 / (nu+sigmaVsq)) * np.dot(ePrevious, ePreviousT)
+            wPrevious = 1 + (1 / (nu*sigmaVsq)) * np.dot(ePrevious, ePreviousT)
             uPrevious = (1 / wPrevious) * ((nu+nSp_pre) / nu) * (1/sigmaVsq) * np.dot(aPreviousT, ePrevious)
             u_list.append(wPrevious)
             
@@ -152,7 +152,7 @@ class DCSt_filtering(object):
             ePreviousT = ePrevious.T
             nSp_pre = self.n_t[t-2]
 
-            wPrevious = 1 + (1 / (nu+sigmaVsq)) * np.dot(ePrevious, ePreviousT)
+            wPrevious = 1 + (1 / (nu*sigmaVsq)) * np.dot(ePrevious, ePreviousT)
             uPrevious = (1 / wPrevious) * ((nu+nSp_pre) / nu) * (1/sigmaVsq) * np.dot(aPreviousT, ePrevious)
             
             self.Beta[t] = self.phi * self.Beta[t-1] + kappa * uPrevious
