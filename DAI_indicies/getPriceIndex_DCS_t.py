@@ -1,14 +1,6 @@
-from math import gamma
-import numpy as np
-import pandas as pd
-import time
-import datetime
-import os
-import logging
-
-from scipy.special import gammaln
-import mpmath
-
+# import numpy as np
+import autograd.numpy as np 
+from autograd_gamma import gammaln
 
 
 class DCSt_filtering(object):
@@ -25,13 +17,8 @@ class DCSt_filtering(object):
         self.n_t = []
         self.Beta = []
         
-        self.sigmaVsq = [] 
-        
-        # self.sigmaKUsqOLS = [] # sigmaXiSqOLS
-        # self.u = []
-        # self.k_u = []
-        
-        self.sigmaBSq = [] 
+        # self.sigmaVsq = [] 
+        # self.sigmaBSq = [] 
         
     def DataPreparation(self):
         T = self.list_of_date.astype("float")
@@ -53,7 +40,7 @@ class DCSt_filtering(object):
         # num_obs = len(self.residualsReg)
         self.Time = max(self.datePrecision)
         
-        return(actualDate)
+        return actualDate
     
     def ParameterEstimate(self):
         n_t_inv = []
@@ -72,109 +59,53 @@ class DCSt_filtering(object):
         
         # a_it
         self.a = np.stack(self.a)
-        
-        # kappa * u_t
-        # self.k_u = np.array(self.Beta[1:]) - np.array(self.Beta[0:self.Time-1])
-        # self.u =self.k_u / self.kappa
-        
-        # # estimate of sigmaVsq 
-        self.sigmaVsq = (1/(1-1/self.Time * sum(n_t_inv))) * (1/self.Time) * np.dot(n_t_inv, resSq)
-        
-        # # estimate sigmaKUsqOLS via beta_t - beta_(t-1)
-        # self.sigmaKUsqOLS = ((self.Time-1)/self.Time) * np.var(self.k_u) - self.sigmaVsq * 1/self.Time * sum(n_t_inv)
-        
-        # estimate sigmaBSq
-        self.sigmaBSq = (self.Time-1)/self.Time * np.dot(np.var(self.Beta), np.repeat(1, self.Time)) 
-        # return(self.Beta)
     
     def UpdateBeta(self,  params):
         sigmaVsq, kappa ,nu = params
-        u_list = []
-        for t in range(2, self.Time):
-            # prediction step
+        e_list=[]
+        uPrevious = np.zeros(self.Time)
+        
+        for t in range(1, self.Time):
             # for t-1
-            previous = np.where(self.datePrecision==t-1)
-            aPrevious = self.a[t-2][previous]
+            previous = np.where(self.datePrecision==t)
+            aPrevious = self.a[t-1][previous]
             aPreviousT = aPrevious.T
             etaPrevious = np.dot(aPrevious, self.Beta[t-1])
-
             ePrevious = self.residualsReg[previous] - etaPrevious
             ePreviousT = ePrevious.T
-            nSp_pre = self.n_t[t-2]
-
+            nSp_pre = self.n_t[t-1]
+            
+            self.Beta[t] = self.phi * self.Beta[t-1] + kappa * uPrevious[t-1]
+            
             wPrevious = 1 + (1 / (nu*sigmaVsq)) * np.dot(ePrevious, ePreviousT)
-            uPrevious = (1 / wPrevious) * ((nu+nSp_pre) / nu) * (1/sigmaVsq) * np.dot(aPreviousT, ePrevious)
-            u_list.append(wPrevious)
+            uPrevious[t] = (1 / wPrevious) * ((nu+nSp_pre) / nu) * (1/sigmaVsq) * np.dot(aPreviousT, ePrevious)
+           
             
-            self.Beta[t] = self.phi * self.Beta[t-1] + kappa * uPrevious
-            
-            self.sigmaBSq[t] = np.square(self.phi) * self.sigmaBSq[t-1] + np.square(kappa) * (np.square(nu)/((nu+3)*(nu+1)))      
-            
-                      
-                                                                       
-            # for t
-            current = np.where(self.datePrecision==t)
-            aCurrent = self.a[t-1][current]
-            aCurrentT = aCurrent.T
-            etaCurrent = np.dot(aCurrent, self.Beta[t])
-            eCurrent = self.residualsReg[current] - etaCurrent
-            eCurrentT = eCurrent.T
-            
-            nSp = self.n_t[t-1]
-
-            sigmaEtaSq = aCurrent.dot(self.sigmaBSq[t]).dot(aCurrentT) + sigmaVsq * np.identity(nSp) 
-            
-            # correction step
-            m = 10^-6
-            self.Beta[t] = self.Beta[t] + np.dot(self.sigmaBSq[t], aCurrentT).dot(np.linalg.inv(sigmaEtaSq+ np.eye(sigmaEtaSq.shape[1])*m)).dot(self.residualsReg[current]-etaCurrent)
-            # self.Beta[t] = self.Beta[t] + np.dot(self.sigmaBSq[t], aCurrentT).dot(np.linalg.inv(sigmaEtaSq)).dot(self.residualsReg[current]-etaCurrent)
-            self.sigmaBSq[t] = self.sigmaBSq[t] - (np.square(self.sigmaBSq[t]) * aCurrentT).dot(np.linalg.inv(sigmaEtaSq)).dot(aCurrent)
-
-
-        BetaT = self.Beta
-        for t in range(self.Time-2, -1, -1):
-            BetaT[t] = self.Beta[t] +  self.phi * self.sigmaBSq[t] / self.sigmaBSq[t+1] * (BetaT[t+1] - self.Beta[t+1])
-        self.Beta = BetaT
-
-        return(self.Beta)
+            e_list.append(ePrevious)
+        
+        return self.Beta, uPrevious, e_list
         
     def ComputeLikelihood(self, params):
         sigmaVsq, kappa ,nu = params
         likLi = []
-        for t in range(2, self.Time):
-            # prediction step
-            # for t-1
-            previous = np.where(self.datePrecision==t-1)
-            aPrevious = self.a[t-2][previous]
+        uPrevious = np.zeros(self.Time)
+        
+        for t in range(1, self.Time):
+                        
+            previous = np.where(self.datePrecision==t)
+            aPrevious = self.a[t-1][previous]
             aPreviousT = aPrevious.T
             etaPrevious = np.dot(aPrevious, self.Beta[t-1])
             ePrevious = self.residualsReg[previous] - etaPrevious
             ePreviousT = ePrevious.T
-            nSp_pre = self.n_t[t-2]
-
+            nSp_pre = self.n_t[t-1]
+            
+            self.Beta[t] = self.phi * self.Beta[t-1] + kappa * uPrevious[t-1]
+            
             wPrevious = 1 + (1 / (nu*sigmaVsq)) * np.dot(ePrevious, ePreviousT)
-            uPrevious = (1 / wPrevious) * ((nu+nSp_pre) / nu) * (1/sigmaVsq) * np.dot(aPreviousT, ePrevious)
+            uPrevious[t] = (1 / wPrevious) * ((nu+nSp_pre) / nu) * (1/sigmaVsq) * np.dot(aPreviousT, ePrevious)
             
-            self.Beta[t] = self.phi * self.Beta[t-1] + kappa * uPrevious
-            self.sigmaBSq[t] = np.square(self.phi) * self.sigmaBSq[t-1] +  np.square(kappa) * (np.square(nu)/((nu+3)*(nu+1)))
+            likLi.append(gammaln((nu+nSp_pre)/2)-gammaln(nu/2)-(nSp_pre/2)*np.log(np.pi*nu* sigmaVsq)-(nu+nSp_pre)/2 * np.log(wPrevious))
             
-            # for t
-            current = np.where(self.datePrecision==t)
-            aCurrent = self.a[t-1][current]
-            aCurrentT = aCurrent.T
-            etaCurrent = np.dot(aCurrent, self.Beta[t])
-            eCurrent = self.residualsReg[current] - etaCurrent
-            eCurrentT = eCurrent.T
-            nSp = self.n_t[t-1]
-            
-            sigmaEtaSq = aCurrent.dot(self.sigmaBSq[t]).dot(aCurrentT) + sigmaVsq * np.identity(nSp)
-            
-            # correction step
-            m = 10^-6
-            self.Beta[t] = self.Beta[t] + np.dot(self.sigmaBSq[t], aCurrentT).dot(np.linalg.inv(sigmaEtaSq+ np.eye(sigmaEtaSq.shape[1])*m)).dot(self.residualsReg[current]-etaCurrent)
-            self.sigmaBSq[t] = self.sigmaBSq[t] - (np.square(self.sigmaBSq[t]) * aCurrentT).dot(np.linalg.inv(sigmaEtaSq)).dot(aCurrent)
-            
-            # analytics shortcut
-            likLi.append(-(gammaln((nu+nSp_pre)/2)- gammaln(nu/2) - (nSp_pre/2)*np.log(np.pi*nu* sigmaVsq)-(nu+nSp)/2 * np.log(wPrevious)))            
-        # return np.count_nonzero(np.isinf(likLi))
-        return sum(likLi)
+        
+        return -1*sum(likLi)
