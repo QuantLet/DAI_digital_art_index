@@ -1,4 +1,6 @@
 import numpy as np
+# import autograd.numpy as np 
+
 import pandas as pd
 import time
 import datetime
@@ -70,70 +72,71 @@ class Kalman_filtering(object):
         self.sigmaBSq = (self.Time-1)/self.Time * np.dot(np.var(self.Beta), np.repeat(1, self.Time)) 
         
         self.zeta = np.dot(self.sigmaXiSqOLS, np.repeat(1, self.Time)) + self.sigmaBSq
-        # return(self.Beta)
+        
+        return self.Beta 
     
     def UpdateBeta(self, sigmaXiSq):
         for t in range(1, self.Time): 
             # prediction step
-            current = np.where(self.datePrecision==t)
-            aCurrent = self.a[t-1][current]
+            current = np.where(self.datePrecision==t+1)
+            aCurrent = self.a[t][current]
             
+            ### i add this
             self.Beta[t] = self.phi * self.Beta[t-1]
-            
             self.sigmaBSq[t] = np.square(self.phi) * self.sigmaBSq[t-1] + sigmaXiSq
             
+            # etaCurrent = np.dot(aCurrent, self.Beta[t-1])
             etaCurrent = np.dot(aCurrent, self.Beta[t])
-            nSp = self.n_t[t-1]
+            e_t = self.residualsReg[current] - etaCurrent
+            nSp = self.n_t[t]
             aTranspose = aCurrent.T
             
             sigmaEtaSq = aCurrent.dot(self.sigmaBSq[t]).dot(aTranspose) + self.sigmaUsq * np.identity(nSp)
             
-                        # correction step
+            # correction step
             m = 10^-6
-            self.Beta[t] = self.Beta[t] + np.dot(self.sigmaBSq[t], aTranspose).dot(np.linalg.inv(sigmaEtaSq+ np.eye(sigmaEtaSq.shape[1])*m)).dot(self.residualsReg[current]-etaCurrent)
-            # self.Beta[t] = self.Beta[t] + np.dot(self.sigmaBSq[t], aTranspose).dot(np.linalg.inv(sigmaEtaSq)).dot(self.residualsReg[current]-etaCurrent)
+            self.Beta[t] = self.Beta[t] + np.dot(self.sigmaBSq[t], aTranspose).dot(np.linalg.inv(sigmaEtaSq+ np.eye(sigmaEtaSq.shape[1])*m)).dot(e_t)
             
             self.sigmaBSq[t] = self.sigmaBSq[t] - (np.square(self.sigmaBSq[t]) * aTranspose).dot(np.linalg.inv(sigmaEtaSq)).dot(aCurrent)
-        
-        BetaT = self.Beta
-        for t in range(self.Time-2, -1, -1):
-            BetaT[t] = self.Beta[t] +  self.phi * self.sigmaBSq[t] / self.sigmaBSq[t+1] * (BetaT[t+1] - self.Beta[t+1])
-        self.Beta = BetaT
-        return(self.Beta)
+            
+        # BetaT = self.Beta
+        # for t in range(self.Time-2, -1, -1):
+        #     BetaT[t] = self.Beta[t] +  self.phi * self.sigmaBSq[t] / self.sigmaBSq[t+1] * (BetaT[t+1] - self.Beta[t+1])
+        # self.Beta = BetaT
+        return self.Beta
         
     def ComputeLikelihood(self, sigmaXiSq):
         likLi = []
         for t in range(1, self.Time):
             # prediction step
-            current = np.where(self.datePrecision==t)
-            aCurrent = self.a[t-1][current]
-            
-            self.Beta[t] = self.phi * self.Beta[t-1]
-            self.sigmaBSq[t] = np.square(self.phi) * self.sigmaBSq[t-1] + sigmaXiSq
-            
-            etaCurrent = np.dot(aCurrent, self.Beta[t])
-            nSp = self.n_t[t-1]
+            current = np.where(self.datePrecision==t+1)
+            aCurrent = self.a[t][current]
             aTranspose = aCurrent.T
+            nSp = self.n_t[t]
             
+            ### i add this
+            self.Beta[t] = self.phi * self.Beta[t-1]
+            
+            self.sigmaBSq[t] = np.square(self.phi) * self.sigmaBSq[t-1] + sigmaXiSq
             sigmaEtaSq = aCurrent.dot(self.sigmaBSq[t]).dot(aTranspose) + self.sigmaUsq * np.identity(nSp)
-
+            
+            #  etaCurrent = np.dot(aCurrent, self.Beta[t-1])
+            etaCurrent = np.dot(aCurrent, self.Beta[t])
+            e_t = self.residualsReg[current] - etaCurrent
+            
             # correction step
             m = 10^-6
-            self.Beta[t] = self.Beta[t] + np.dot(self.sigmaBSq[t], aTranspose).dot(np.linalg.inv(sigmaEtaSq+ np.eye(sigmaEtaSq.shape[1])*m)).dot(self.residualsReg[current]-etaCurrent)
+            self.Beta[t] = self.phi * self.Beta[t]+ np.dot(self.sigmaBSq[t], aTranspose).dot(np.linalg.inv(sigmaEtaSq+ np.eye(sigmaEtaSq.shape[1])*m)).dot(e_t)
             
             self.sigmaBSq[t] = self.sigmaBSq[t] - (np.square(self.sigmaBSq[t]) * aTranspose).dot(np.linalg.inv(sigmaEtaSq)).dot(aCurrent)
-
-            # analytical shortcut
+            
             self.zeta[t] = self.sigmaBSq[t] + sigmaXiSq
             zetaTT_1 = self.zeta[t-1]
-
             sigma_t_zeta = abs(2*(nSp-1) * np.log(np.sqrt(self.sigmaUsq))  + np.log(nSp*zetaTT_1+self.sigmaUsq))
             
-            e_t = self.residualsReg[current] - etaCurrent
-            e_t_transpose = e_t.T
-            
             sigma_t_1_zeta = 1/(nSp*zetaTT_1+self.sigmaUsq)*np.dot(aCurrent,aTranspose)/nSp + 1/self.sigmaUsq*(np.identity(nSp)-np.dot(aCurrent,aTranspose)/nSp)
-
-            likLi.append(0.5 * (sigma_t_zeta + e_t.dot(sigma_t_1_zeta).dot(e_t_transpose)))
             
-        return(sum(likLi))
+            likLi.append(0.5 * (sigma_t_zeta + e_t.dot(sigma_t_1_zeta).dot(e_t.T)))
+            
+            
+        return sum(likLi)
